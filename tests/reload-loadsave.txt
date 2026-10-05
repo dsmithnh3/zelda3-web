@@ -1,0 +1,29 @@
+# Runs after a full page reload, against whatever save came back out of
+# IndexedDB.  The point is not "a file exists" but "the file loads and play
+# resumes", so this drives the file select and starts the saved game.
+
+@echo --- intro ---
+1100 -
+@expect module == 0
+
+@echo --- Start -> file select ---
+3 start
+12 -
+60 -
+@expect module == 1
+@ppm reload-01-fileselect
+@expectframe 20.0 16
+
+@echo --- the saved file is there: picking it loads the game, not name entry ---
+3 a
+12 -
+180 -
+@expect module != 4
+@expect room == 260
+@expect health == 24
+@ppm reload-02-loaded
+@expectframe 5.0 24
+
+@echo --- and it is live: a few hundred frames keep running ---
+300 -
+@print resumed

@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>zelda3 browser check</title>
+<style>
+  body { background:#101218; color:#dfe3ee; font:13px/1.5 ui-monospace,Menlo,monospace; margin:0; padding:12px; }
+  #out { white-space: pre-wrap; }
+  /* Same box model as index.html: emscripten sizes the canvas backing store
+     from the element's CSS box, so the box has to carry the 256:224 aspect or
+     the engine letterboxes into a square. */
+  canvas { image-rendering: pixelated; box-sizing: border-box; width: 512px;
+           aspect-ratio: 256 / 224; border: 1px solid #333; display: block; }
+  .ok { color:#6ee7a8 } .bad { color:#ff8a8a } .muted { color:#8a90a6 }
+  #picker .row, #stage { }
+</style>
+</head>
+<body>
+<h3>zelda3 browser check <span id="stageName" class="muted"></span></h3>
+<div id="picker"><div class="row"><input type="file" id="rom"><span id="romhint"></span></div>
+  <div class="bar"><i id="bar"></i></div><div id="log" class="muted" style="max-height:120px;overflow:auto"></div></div>
+<div id="stage" hidden>
+  <canvas id="canvas" width="256" height="224" tabindex="0"></canvas>
+  <button id="focus">focus</button>
+  <table><tr><td id="savestate"></td><td id="audiostate"></td></tr></table>
+</div>
+<div id="out"></div>
+
+<script>
+/* Test-only: force preserveDrawingBuffer so the harness can read back exactly
+   what the engine composited, instead of guessing from internal state.  It
+   changes nothing about how the frame is drawn. */
+(function () {
+  const orig = HTMLCanvasElement.prototype.getContext;
+  HTMLCanvasElement.prototype.getContext = function (type, attrs) {
+    if (/webgl/i.test(type)) attrs = Object.assign({}, attrs, { preserveDrawingBuffer: true });
+    return orig.call(this, type, attrs);
+  };
+})();
+
+const qp = new URLSearchParams(location.search);
+const STAGE = qp.get('stage') || '1';
+document.getElementById('stageName').textContent = 'stage ' + STAGE;
+
+const report = { stage: STAGE, started: new Date().toISOString(), steps: [], failures: [], notes: [], shots: {} };
+const outEl = document.getElementById('out');
+function say(msg, cls) {
+  const d = document.createElement('div');
+  if (cls) d.className = cls;
+  d.textContent = msg;
+  outEl.appendChild(d);
+  console.log('[check]', msg);
+}
+function fail(msg) { report.failures.push(msg); say('FAIL ' + msg, 'bad'); }
+function pass(msg) { say('PASS ' + msg, 'ok'); }
+
+// ----------------------------------------------------------------- keyboard
+
+const KEYS = {
+  up:     { key: 'ArrowUp',    code: 'ArrowUp',    keyCode: 38 },
+  down:   { key: 'ArrowDown',  code: 'ArrowDown',  keyCode: 40 },
+  left:   { key: 'ArrowLeft',  code: 'ArrowLeft',  keyCode: 37 },
+  right:  { key: 'ArrowRight', code: 'ArrowRight', keyCode: 39 },
+  start:  { key: 'Enter',      code: 'Enter',      keyCode: 13 },
+  select: { key: 'Shift',      code: 'ShiftRight', keyCode: 16, location: 2 },
+  a:      { key: 'x',          code: 'KeyX',       keyCode: 88 },
+  b:      { key: 'z',          code: 'KeyZ',       keyCode: 90 },
+  x:      { key: 's',          code: 'KeyS',       keyCode: 83 },
+  y:      { key: 'a',          code: 'KeyA',       keyCode: 65 },
+  l:      { key: 'c',          code: 'KeyC',       keyCode: 67 },
+  r:      { key: 'v',          code: 'KeyV',       keyCode: 86 },
+};
+
+function sendKey(name, down) {
+  const k = KEYS[name];
+  if (!k) throw new Error('unknown button ' + name);
+  const ev = new KeyboardEvent(down ? 'keydown' : 'keyup', {
+    key: k.key, code: k.code, keyCode: k.keyCode, which: k.keyCode,
+    location: k.location || 0, bubbles: true, cancelable: true, composed: true,
+  });
+  // SDL2's emscripten backend binds keyboard events to the window.
+  window.dispatchEvent(ev);
+}
+
+let held = new Set();
+function setHeld(next) {
+  for (const k of held) if (!next.has(k)) { sendKey(k, false); }
+  for (const k of next) if (!held.has(k)) { sendKey(k, true); }
+  held = next;
+}
+
+// --------------------------------------------------------------- game state
+
+let G = null;   // bound wasm accessors
+function bindState(mod) {
+  const n = (name) => mod.cwrap(name, 'number', []);
+  G = {
+    frame: n('z3_frame'), module: n('z3_module'), submodule: n('z3_submodule'),
+    link_x: n('z3_link_x'), link_y: n('z3_link_y'), ow_area: n('z3_ow_area'),
+    room: n('z3_room'), health: n('z3_health'), health_cap: n('z3_health_cap'),
+    sram_hash: mod.cwrap('z3_sram_hash', 'number', []),
+    slot_used: mod.cwrap('z3_slot_used', 'number', ['number']),
+  };
+}
+function readVar(name) {
+  switch (name) {
+    case 'module': return G.module();
+    case 'submodule': return G.submodule();
+    case 'link_x': return G.link_x();
+    case 'link_y': return G.link_y();
+    case 'ow_area': return G.ow_area();
+    case 'room': return G.room();
+    case 'health': return G.health();
+    case 'health_cap': return G.health_cap();
+    case 'frame': return G.frame();
+    default: return null;
+  }
+}
+function snapshotState(label) {
+  return {
+    label, frame: G.frame(), module: G.module(), submodule: G.submodule(),
+    room: G.room(), ow_area: G.ow_area(), link_x: G.link_x(), link_y: G.link_y(),
+    health: G.health(),
+  };
+}
+
+// ------------------------------------------------------- canvas measurement
+
+const readCanvas = document.createElement('canvas');
+const readCtx = readCanvas.getContext('2d', { willReadFrequently: true });
+function frameStats() {
+  const c = document.getElementById('canvas');
+  if (!c.width || !c.height) return { luma: 0, colors: 0, w: 0, h: 0 };
+  readCanvas.width = c.width; readCanvas.height = c.height;
+  readCtx.drawImage(c, 0, 0);
+  const d = readCtx.getImageData(0, 0, c.width, c.height).data;
+  const seen = new Set();
+  let sum = 0;
+  for (let i = 0; i < d.length; i += 4) {
+    sum += 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+    seen.add(((d[i] >> 3) << 10) | ((d[i + 1] >> 3) << 5) | (d[i + 2] >> 3));
+  }
+  return { luma: sum / (d.length / 4), colors: seen.size, w: c.width, h: c.height };
+}
+function shot(name) {
+  try { report.shots[name] = document.getElementById('canvas').toDataURL('image/png'); }
+  catch (e) { report.notes.push('screenshot ' + name + ' failed: ' + e); }
+}
+
+function fnv1a(bytes) {
+  let h = 2166136261 >>> 0;
+  for (let i = 0; i < bytes.length; i++) {
+    h ^= bytes[i];
+    h = Math.imul(h, 16777619) >>> 0;
+  }
+  return h >>> 0;
+}
+function saveFileHash(mod) {
+  try {
+    const d = mod.FS.readFile('/saves/sram.dat');
+    return { bytes: d.length, hash: fnv1a(d) };
+  } catch (e) { return null; }
+}
+
+// ------------------------------------------------------------- frame pacing
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+async function waitFrames(n) {
+  const target = G.frame() + n;
+  const deadline = performance.now() + Math.max(20000, n * 120);
+  let last = G.frame(), lastMove = performance.now();
+  while (G.frame() < target) {
+    await sleep(0);
+    const f = G.frame();
+    if (f !== last) { last = f; lastMove = performance.now(); }
+    else if (performance.now() - lastMove > 10000) throw new Error('engine stopped advancing frames');
+    if (performance.now() > deadline) throw new Error('timed out waiting for ' + n + ' frames');
+  }
+}
+
+// ---------------------------------------------------------- script runner
+
+function parseButtons(s) {
+  if (s === '-' || s === 'none') return new Set();
+  return new Set(s.split('+'));
+}
+
+async function runScript(text) {
+  const t0 = performance.now();
+  for (const raw of text.split('\n')) {
+    const line = raw.split('#')[0].trim();
+    if (!line) continue;
+    if (line[0] === '@') {
+      const parts = line.split(/\s+/);
+      const cmd = parts[0];
+      if (cmd === '@echo') { say(line.slice(6), 'muted'); continue; }
+      if (cmd === '@print') {
+        const st = snapshotState(parts[1] || '-');
+        st.canvas = frameStats();
+        report.steps.push(st);
+        say(`state ${st.label} frame=${st.frame} module=${st.module} room=0x${st.room.toString(16)} ` +
+            `ow=0x${st.ow_area.toString(16)} link=(${st.link_x},${st.link_y}) hp=${st.health} ` +
+            `luma=${st.canvas.luma.toFixed(2)} colors=${st.canvas.colors}`);
+        continue;
+      }
+      if (cmd === '@ppm') { shot(parts[1]); say('shot ' + parts[1], 'muted'); continue; }
+      if (cmd === '@sram') { report.sramHashAfterPlay = G.sram_hash() >>> 0; continue; }
+      if (cmd === '@expect') {
+        const [, name, op, valStr] = parts;
+        const want = Number(valStr), got = readVar(name);
+        if (got === null) { fail(`unknown state var ${name}`); continue; }
+        const ok = op === '==' ? got === want : op === '!=' ? got !== want
+          : op === '>' ? got > want : op === '<' ? got < want
+          : op === '>=' ? got >= want : op === '<=' ? got <= want : null;
+        if (ok === null) fail(`bad operator ${op}`);
+        else if (ok) pass(`${name} ${op} ${want} (actual ${got})`);
+        else fail(`${name} ${op} ${want} but actual is ${got}`);
+        continue;
+      }
+      if (cmd === '@expectframe') {
+        const minLuma = Number(parts[1] ?? 1), minColors = Number(parts[2] ?? 8);
+        const s = frameStats();
+        if (s.luma >= minLuma && s.colors >= minColors) {
+          pass(`canvas ${s.w}x${s.h} luma=${s.luma.toFixed(2)} colors=${s.colors}`);
+        } else {
+          fail(`canvas too plain: ${s.w}x${s.h} luma=${s.luma.toFixed(2)} (>= ${minLuma}) colors=${s.colors} (>= ${minColors})`);
+        }
+        continue;
+      }
+      if (cmd === '@mash') {
+        const [, iter, press, rel, btn] = parts;
+        const mask = parseButtons(btn);
+        for (let i = 0; i < Number(iter); i++) {
+          setHeld(mask); await waitFrames(Number(press));
+          setHeld(new Set()); await waitFrames(Number(rel));
+        }
+        continue;
+      }
+      fail('unknown directive ' + cmd);
+      continue;
+    }
+    const [countStr, btn] = line.split(/\s+/);
+    setHeld(parseButtons(btn));
+    await waitFrames(Number(countStr));
+  }
+  setHeld(new Set());
+  report.wallClockSeconds = +((performance.now() - t0) / 1000).toFixed(1);
+}
+
+// The harness above runs app.js directly so it can read the canvas back.  This
+// extra pass boots the page users actually get, in an iframe, and checks it
+// reaches a running engine on its own.
+async function checkShippedPage() {
+  const frame = document.createElement('iframe');
+  frame.style.cssText = 'width:560px;height:620px;border:1px solid #333';
+  frame.src = 'index.html';
+  document.body.appendChild(frame);
+  try {
+    await new Promise((res) => frame.addEventListener('load', res, { once: true }));
+    const w = frame.contentWindow;
+    const doc = frame.contentDocument;
+    const dt = new DataTransfer();
+    dt.items.add(new File([await (await fetch('/_rom')).arrayBuffer()], 'zelda3.sfc'));
+    const input = doc.getElementById('rom');
+    input.files = dt.files;
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+    const deadline = performance.now() + 180000;
+    while (!(w.Z3 && (w.Z3.module || w.Z3.error))) {
+      if (performance.now() > deadline) throw new Error('index.html did not boot in time');
+      await sleep(200);
+    }
+    if (w.Z3.error) throw new Error('index.html reported: ' + w.Z3.error);
+    const f = w.Z3.module.cwrap('z3_frame', 'number', []);
+    const t = performance.now();
+    while (f() < 120) {
+      if (performance.now() - t > 30000) throw new Error('index.html engine did not advance frames');
+      await sleep(100);
+    }
+    const c = doc.getElementById('canvas');
+    report.shippedPage = {
+      canvasW: c.width, canvasH: c.height,
+      cssW: Math.round(c.getBoundingClientRect().width),
+      cssH: Math.round(c.getBoundingClientRect().height),
+      frames: f(), assetsFromCache: w.Z3.assetsFromCache,
+      stageVisible: !doc.getElementById('stage').hidden,
+    };
+    pass(`index.html boots and runs: canvas ${c.width}x${c.height}, frame ${f()}`);
+    const ratio = c.width / c.height;
+    if (Math.abs(ratio - 256 / 224) > 0.02) {
+      fail(`index.html canvas aspect is ${ratio.toFixed(3)}, expected ${(256 / 224).toFixed(3)}`);
+    } else {
+      pass('index.html canvas keeps the 256:224 aspect');
+    }
+  } finally {
+    frame.remove();
+  }
+}
+
+// -------------------------------------------------------------------- main
+
+async function waitFor(fn, what, timeoutMs) {
+  const deadline = performance.now() + timeoutMs;
+  while (!fn()) {
+    if (performance.now() > deadline) throw new Error('timed out waiting for ' + what);
+    await sleep(50);
+  }
+}
+
+async function main() {
+  try {
+    say('fetching ROM from the local test server (stands in for a human picking a file)', 'muted');
+    const romBytes = new Uint8Array(await (await fetch('/_rom')).arrayBuffer());
+    const file = new File([romBytes], 'zelda3.sfc', { type: 'application/octet-stream' });
+
+    // Drive the page's real <input type=file> listener, not an internal API.
+    const input = document.getElementById('rom');
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    input.files = dt.files;
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+
+    await waitFor(() => window.Z3 && (Z3.module || Z3.error), 'engine to load', 600000);
+    if (Z3.error) throw new Error('page reported: ' + Z3.error);
+    report.rom = Z3.rom;
+    report.assetsBytes = Z3.assetsBytes;
+    report.assetsFromCache = Z3.assetsFromCache;
+    pass(`ROM accepted: ${Z3.rom.label} sha1=${Z3.rom.sha1}`);
+    pass(`assets ${Z3.assetsBytes} bytes (${Z3.assetsFromCache ? 'from cache' : 'extracted in-browser'})`);
+
+    bindState(Z3.module);
+    await waitFor(() => G.frame() > 0, 'the engine to run its first frame', 60000);
+    pass('engine is running frames: ' + G.frame());
+
+    report.assetsSha1 = Z3.assetsSha1;
+    report.saveFileFoundAtBoot = Z3.module.FS.analyzePath('/saves/sram.dat').exists;
+    report.saveFileAtBoot = saveFileHash(Z3.module);
+    report.sramHashAtBoot = G.sram_hash() >>> 0;
+    report.slot1UsedAtBoot = !!G.slot_used(0);
+
+    if (STAGE === '1') {
+      const script = await (await fetch('/_script')).text();
+      await runScript(script);
+      report.sramHashAtEnd = G.sram_hash() >>> 0;
+      report.slot1UsedAtEnd = !!G.slot_used(0);
+      if (report.slot1UsedAtEnd) pass('save slot 1 is in use at the end of play');
+      else fail('save slot 1 is still empty at the end of play');
+      // Give IDBFS a moment to flush before the orchestrator reloads us.
+      await sleep(1500);
+      report.saveFileAtEnd = saveFileHash(Z3.module);
+      if (report.saveFileAtEnd) pass(`/saves/sram.dat is ${report.saveFileAtEnd.bytes} bytes on disk`);
+      else fail('/saves/sram.dat was never written');
+    } else {
+      // Stage 2 only cares that the save came back after a full reload.
+      if (report.saveFileFoundAtBoot) pass('/saves/sram.dat was restored from IndexedDB');
+      else fail('/saves/sram.dat did not survive the reload');
+      if (report.slot1UsedAtBoot) pass('save slot 1 is still in use after reload');
+      else fail('save slot 1 is empty after reload');
+      const script2 = await (await fetch('/_script2')).text();
+      await runScript(script2);
+      await checkShippedPage();
+    }
+    report.ok = report.failures.length === 0;
+  } catch (e) {
+    fail(String(e && e.stack || e));
+    report.ok = false;
+  }
+  report.pageLog = (window.Z3 && Z3.lines) || [];
+  report.finished = new Date().toISOString();
+  say(report.ok ? 'RESULT: ok' : 'RESULT: failures=' + report.failures.length,
+      report.ok ? 'ok' : 'bad');
+  await fetch('/_result', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(report),
+  });
+  document.title = report.ok ? 'CHECK-OK' : 'CHECK-FAIL';
+  // Closing the last tab lets headless Chrome exit of its own accord.  If it is
+  // SIGTERMed instead it records a crash, and the next launch restores this tab
+  // alongside the one we asked for -- which once made a stale stage-2 report
+  // look like stage 1's.
+  if (!qp.has('keepopen')) setTimeout(() => window.close(), 300);
+}
+
+addEventListener('load', () => setTimeout(main, 50));
+</script>
+<script src="app.js"></script>
+</body>
+</html>

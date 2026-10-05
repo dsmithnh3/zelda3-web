@@ -1,0 +1,47 @@
+THIRD-PARTY NOTICES
+===================
+
+This repository contains build tooling and a browser front-end. It contains no
+game ROM and no bytes extracted from one. Game assets are extracted from a
+cartridge dump the user supplies, at build or run time, and are never committed
+or redistributed here.
+
+Engine: snesrev/zelda3
+---------------------------------------------
+  Used for   : the C reimplementation of the game engine that this project
+               compiles to WebAssembly. This is a reimplementation, not a
+               byte-matching decompilation, and it produces no ROM.
+  Licence    : MIT
+  Licence text: see LICENSE-engine-MIT.txt in this directory
+  Source     : https://github.com/snesrev/zelda3
+
+Emscripten / SDL2
+-----------------
+  Used for   : the WebAssembly toolchain and its bundled SDL2 port, which the
+               engine targets via -sUSE_SDL=2.
+  Licence    : MIT (Emscripten), zlib (SDL2)
+  Source     : https://github.com/emscripten-core/emscripten
+               https://github.com/libsdl-org/SDL
+
+The exact pinned upstream revision is recorded in STATUS.md.
+
+Pyodide (and its bundled wheels)
+--------------------------------
+  Used for   : running the upstream project's own Python asset-extraction
+               script inside the browser tab, so that assets are derived from
+               the user's own cartridge dump locally and are never uploaded.
+               Pyodide is vendored rather than loaded from a CDN specifically
+               so the page can run under a Content-Security-Policy that permits
+               no third-party origin at all.
+  Version    : 0.28.3
+  Licence    : Apache-2.0 (Pyodide)
+  Source     : https://github.com/pyodide/pyodide
+
+  Bundled wheels used by the extractor:
+    Pillow 11.3.0  - HPND (Historical Permission Notice and Disclaimer)
+                     https://github.com/python-pillow/Pillow
+    PyYAML 6.0.2   - MIT
+                     https://github.com/yaml/pyyaml
+
+  These are redistributed unmodified. Each carries its own licence text within
+  its wheel metadata in web/pyodide/.

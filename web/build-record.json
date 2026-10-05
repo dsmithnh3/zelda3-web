@@ -1,0 +1,42 @@
+{
+  "revision": "45a149d8b4bb8098f53d1009f76e76e7d8b79bbf",
+  "toolchain": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 4.0.10 (b7dc6e5747465580df5984e723b9d1f10d8e804b)",
+  "flags": [
+    "-O2",
+    "-I",
+    "/home/nakas/decompfleet/games/zelda3/work/zelda3",
+    "-iquote",
+    "/home/nakas/decompfleet/games/zelda3/work/zelda3/src",
+    "-iquote",
+    "/home/nakas/decompfleet/games/zelda3/work/zelda3/snes",
+    "-sUSE_SDL=2",
+    "-DSYSTEM_VOLUME_MIXER_AVAILABLE=0",
+    "-sASYNCIFY=1",
+    "-sALLOW_MEMORY_GROWTH=1",
+    "-sEXIT_RUNTIME=1",
+    "-sFORCE_FILESYSTEM=1",
+    "-sINVOKE_RUN=0",
+    "-sMODULARIZE=1",
+    "-sEXPORT_NAME=createZelda3",
+    "-sEXPORTED_RUNTIME_METHODS=FS,IDBFS,callMain,ccall,cwrap,HEAPU8",
+    "-lidbfs.js"
+  ],
+  "patchedSources": [
+    "main-browser.c",
+    "zelda_rtl-browser.c"
+  ],
+  "assetsBundled": false,
+  "romBundled": false,
+  "files": [
+    {
+      "path": "zelda3.js",
+      "bytes": 202619,
+      "sha256": "a8ae94e03ecc84683dff48d089b760f259c9b1b8d2dcce59aaaa97f68c0519cc"
+    },
+    {
+      "path": "zelda3.wasm",
+      "bytes": 2225293,
+      "sha256": "2ef9a0294030655e59c820c35a5b769453b54da388f7e84f9a1ee20a9fc5bffb"
+    }
+  ]
+}

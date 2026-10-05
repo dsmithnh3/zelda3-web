@@ -1,0 +1,71 @@
+# Muted new-game play-through: boot -> create file 1 -> clear the opening
+# telepathy -> walk out of Link's house -> cross from overworld area 0x2C into
+# 0x2B.  Coordinates were found by stepping the real build and looking at the
+# rendered frames; see out/shots/.
+#
+# No audio device is ever opened by this harness and EnableAudio=0 in the ini.
+
+@echo --- intro: triforce + title ---
+1100 -
+@expect module == 0
+@ppm 00-title
+
+@echo --- press Start to reach the file select ---
+3 start
+12 -
+60 -
+@expect module == 1
+@ppm 01-fileselect
+
+@echo --- pick the empty file 1 -> name entry ---
+3 a
+12 -
+60 -
+@expect module == 4
+@ppm 02-nameentry
+
+@echo --- type one character, then Start to confirm the name ---
+3 a
+12 -
+3 start
+12 -
+60 -
+@expect module == 1
+@ppm 03-fileselect-named
+
+@echo --- start the file ---
+3 a
+12 -
+120 -
+@expect room == 260
+@expect health == 24
+@ppm 04-link-in-bed
+@expectframe 5.0 24
+
+@echo --- clear the opening telepathy (Zelda's "Help me") ---
+@mash 200 3 7 b
+@print out_of_bed
+@expect module == 7
+@expectframe 40.0 32
+@ppm 05-house-lit
+
+@echo --- walk to the door and leave the house ---
+120 down
+18 right
+200 down
+@print outside
+@expect module == 9
+@expect ow_area == 44
+@expectframe 40.0 48
+@ppm 06-overworld-rain
+
+@echo --- head west, crossing into the next overworld area ---
+400 left
+@print crossed
+@expect module == 9
+@expect ow_area == 43
+@expectframe 40.0 48
+@ppm 07-area-2b
+
+@echo --- persist the save ---
+@sram

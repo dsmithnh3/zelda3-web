@@ -1,0 +1,31 @@
+# ---------------------------------------------------------------------------
+# No ROMs, and nothing extracted from one, ever enters this repository.
+# ---------------------------------------------------------------------------
+*.nes
+*.gb
+*.gbc
+*.sfc
+*.smc
+*.md
+*.gba
+*.z64
+*.iso
+*.gcm
+*.rvz
+baserom*
+zelda3_assets.dat
+zelda3_assets.bps
+
+# ...but the repo's own prose is Markdown, so let it back in by name.
+!README.md
+!STATUS.md
+
+# Build tree: upstream checkout, unpacked SDL2 prefix, emitted artifacts,
+# extracted assets, screenshots, Chrome profiles.
+/work/
+/out/
+
+# Editor / OS noise
+__pycache__/
+*.pyc
+.DS_Store
