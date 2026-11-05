@@ -1,4 +1,4 @@
-name: Deploy Zelda3 to GitHub Pages
+name: Publish Zelda3 web game
 
 on:
   push:
@@ -9,45 +9,50 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 concurrency:
-  group: pages
+  group: zelda3-publish
   cancel-in-progress: true
 
 jobs:
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  publish:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/configure-pages@v5
+      - name: Checkout project
+        uses: actions/checkout@v4
         with:
-          enablement: true
-      - name: Verify checked-in browser distribution
+          persist-credentials: true
+      - name: Validate checked-in browser app
+        shell: bash
         run: |
-          set -eu
-          node --check web/mobile.js
+          set -euo pipefail
           node --check web/app.js
+          node --check web/mobile.js
+          test -s web/index.html
           test -s web/mobile.css
           test -s web/manifest.webmanifest
-          test -s web/index.html
-          test -s web/app.js
           test -s web/zelda3.js
           test -s web/zelda3.wasm
           test -s web/pyodide/pyodide.js
           test -s web/pyodide/pyodide.asm.wasm
           test -s web/extractor/restool.py
           if find web -type f \( -iname '*.sfc' -o -iname '*.smc' -o -name 'zelda3_assets.dat' \) | grep .; then
-            echo "Refusing to deploy copyrighted ROM or extracted game data"
+            echo "Refusing to publish a ROM or extracted copyrighted game assets"
             exit 1
           fi
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: web
-      - id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Publish prepared site to gh-pages
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/zelda3-site"
+          cp -a web/. "$RUNNER_TEMP/zelda3-site/"
+          touch "$RUNNER_TEMP/zelda3-site/.nojekyll"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan gh-pages
+          git rm -rf --ignore-unmatch . >/dev/null
+          cp -a "$RUNNER_TEMP/zelda3-site/." .
+          git add -A
+          git commit -m "Deploy browser game from ${GITHUB_SHA}"
+          git push --force origin HEAD:gh-pages
