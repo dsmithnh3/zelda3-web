@@ -1,0 +1,47 @@
+name: Deploy Zelda3 to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'web/**'
+      - '.github/workflows/deploy-pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - name: Verify checked-in browser distribution
+        run: |
+          set -eu
+          test -s web/index.html
+          test -s web/app.js
+          test -s web/zelda3.js
+          test -s web/zelda3.wasm
+          test -s web/pyodide/pyodide.js
+          test -s web/pyodide/pyodide.asm.wasm
+          test -s web/extractor/restool.py
+          if find web -type f \( -iname '*.sfc' -o -iname '*.smc' -o -name 'zelda3_assets.dat' \) | grep .; then
+            echo "Refusing to deploy copyrighted ROM or extracted game data"
+            exit 1
+          fi
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: web
+      - id: deployment
+        uses: actions/deploy-pages@v4
