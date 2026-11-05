@@ -25,11 +25,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/configure-pages@v5
+      - uses: actions/configure-pages@v5\n        with:\n          enablement: true
       - name: Verify checked-in browser distribution
         run: |
           set -eu
-          test -s web/index.html
+          node --check web/mobile.js\n          node --check web/app.js\n          test -s web/mobile.css\n          test -s web/manifest.webmanifest\n          test -s web/index.html
           test -s web/app.js
           test -s web/zelda3.js
           test -s web/zelda3.wasm
