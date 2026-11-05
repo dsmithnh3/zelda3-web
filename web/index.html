@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n<meta name="theme-color" content="#14151a">\n<meta name="apple-mobile-web-app-capable" content="yes">\n<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">\n<link rel="manifest" href="manifest.webmanifest">\n<link rel="stylesheet" href="mobile.css">
 <!-- connect-src 'self' is the point of vendoring Pyodide: with no third-party
      origin reachable, the ROM you pick cannot be sent anywhere even in principle. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' 'unsafe-eval'; connect-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; worker-src 'self' blob:; form-action 'none'; base-uri 'none'">
@@ -70,8 +70,29 @@
   <div class="panel" id="stage" hidden>
     <canvas id="canvas" width="256" height="224" tabindex="0"></canvas>
     <div class="row" style="margin-top:12px">
-      <button id="focus">Click here, then play</button>
-      <span class="muted">Arrows move &middot; Z = B &middot; X = A &middot; A = Y &middot; S = X &middot; Enter = Start &middot; Right Shift = Select</span>
+      <button id="focus">Focus game</button>
+      <span class="muted desktop-help">Arrows move &middot; Z = B &middot; X = A &middot; A = Y &middot; S = X &middot; Enter = Start &middot; Right Shift = Select</span>
+    </div>
+    <button id="mobile-wake" type="button">Enable game controls / audio</button>
+    <div id="mobile-controls" aria-label="Touch game controller">
+      <div class="mobile-cluster dpad" aria-label="Directional pad">
+        <button class="game-button up" type="button" data-keys="up" aria-label="Up">▲</button>
+        <button class="game-button left" type="button" data-keys="left" aria-label="Left">◀</button>
+        <button class="game-button right" type="button" data-keys="right" aria-label="Right">▶</button>
+        <button class="game-button down" type="button" data-keys="down" aria-label="Down">▼</button>
+      </div>
+      <div class="mobile-cluster actions" aria-label="Action buttons">
+        <button class="game-button a" type="button" data-keys="a">A</button>
+        <button class="game-button b" type="button" data-keys="b">B</button>
+        <button class="game-button x" type="button" data-keys="x">X</button>
+        <button class="game-button y" type="button" data-keys="y">Y</button>
+      </div>
+      <div class="aux-controls">
+        <button class="game-button" type="button" data-keys="l">L</button>
+        <button class="game-button" type="button" data-keys="select">SELECT</button>
+        <button class="game-button" type="button" data-keys="start">START</button>
+        <button class="game-button" type="button" data-keys="r">R</button>
+      </div>
     </div>
     <table style="margin-top:12px">
       <tr><th>save</th><td id="savestate" class="muted">no save yet</td></tr>
@@ -79,6 +100,6 @@
     </table>
   </div>
 </div>
-<script src="app.js"></script>
+<script src="app.js"></script>\n<script src="mobile.js"></script>
 </body>
 </html>
