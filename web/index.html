@@ -8,6 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="stylesheet" href="mobile.css">
+<link rel="stylesheet" href="immersive.css">
 <!-- connect-src 'self' is the point of vendoring Pyodide: with no third-party
      origin reachable, the ROM you pick cannot be sent anywhere even in principle. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' 'unsafe-eval'; connect-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; worker-src 'self' blob:; form-action 'none'; base-uri 'none'">
@@ -103,9 +104,29 @@
       <tr><th>save</th><td id="savestate" class="muted">no save yet</td></tr>
       <tr><th>audio</th><td id="audiostate" class="muted"></td></tr>
     </table>
+    <div id="game-toolbar"><button type="button" id="hud-menu" aria-label="Game settings">⚙</button></div>
+    <div id="turn-hint" hidden>Rotate your iPhone for landscape play</div>
+    <section id="hud-settings" hidden aria-label="Game display settings">
+      <div class="settings-panel">
+        <h2>Game display &amp; controls</h2>
+        <label>Control transparency <input id="hud-opacity" type="range" min="20" max="95" value="55"></label>
+        <label>Control size <input id="hud-size" type="range" min="70" max="125" value="100"></label>
+        <label>Game image
+          <select id="hud-screen">
+            <option value="fit">Fit (original aspect ratio)</option>
+            <option value="fill">Stretch (edge-to-edge)</option>
+            <option value="crop">Cover (crop edges)</option>
+          </select>
+        </label>
+        <button type="button" id="hud-fullscreen">Request fullscreen / landscape</button>
+        <p class="muted">For the most immersive iPhone experience, open in Safari and use Share → Add to Home Screen. iPhone Safari does not guarantee true browser fullscreen or automatic rotation.</p>
+        <button type="button" id="hud-close">Return to game</button>
+      </div>
+    </section>
   </div>
 </div>
 <script src="app.js"></script>
 <script src="mobile.js"></script>
+<script src="immersive.js"></script>
 </body>
 </html>
