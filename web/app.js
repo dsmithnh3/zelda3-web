@@ -214,7 +214,7 @@ exec(compile(src, '/work/assets/restool.py', 'exec'),
 
 // ------------------------------------------------------------------- boot
 
-function makeIni() {
+function makeIni(iphoneWide = false) {
   // Only the handful of settings that matter here; everything else keeps the
   // upstream default.
   return [
@@ -223,7 +223,7 @@ function makeIni() {
     `DisableFrameDelay = ${TURBO ? 1 : 0}`,
     // ExtendedAspectRatio belongs to [General]; the parser is section-aware and
     // warns if it turns up under [Graphics].
-    'ExtendedAspectRatio = 16:9, unchanged_sprites',
+    `ExtendedAspectRatio = ${iphoneWide ? '19.5:9' : '16:9'}, unchanged_sprites`,
     '',
     '[Graphics]',
     'OutputMethod = SDL',
@@ -249,7 +249,24 @@ async function boot(datBytes) {
     document.head.appendChild(s);
   });
 
+  // Feature gate: only request 19.5:9 with a freshly rebuilt and verified
+  // C/WASM engine. An older published bundle continues using known-good 16:9.
+  let iphoneWide = false;
+  try {
+    const response = await fetch('build-record.json', {cache:'no-store'});
+    if (response.ok) {
+      const meta = await response.json();
+      iphoneWide = meta.iphoneWidePpu === true && meta.maxPpuExtra >= 114 &&
+        meta.iphoneWideWidth === 484;
+    }
+  } catch (e) { log('wide-engine capability check unavailable; using 16:9'); }
   const canvas = el('canvas');
+  const expectedWidth = iphoneWide ? 484 : 398;
+  canvas.width = expectedWidth;
+  canvas.height = 224;
+  Z3.iphoneWide = iphoneWide;
+  log(iphoneWide ? '19.5:9 C/WASM engine verified by build metadata' :
+    '16:9 compatibility renderer (no 19.5:9 WASM capability)');
   const mod = await createZelda3({
     canvas,
     noInitialRun: true,
@@ -258,11 +275,12 @@ async function boot(datBytes) {
   });
   Z3.module = mod;
 
-  const engineIni = makeIni();
+  const engineIni = makeIni(iphoneWide);
   mod.FS.writeFile('/zelda3.ini', engineIni);
   // Widescreen config is parsed by the compiled C engine at startup.
-  // The browser canvas must start at the corresponding 398x224 dimensions.
-  Z3.requestedVideo = {aspect: '16:9', preserveSprites: true, width: 398, height: 224, ini: engineIni};
+  // The browser canvas starts at 484x224 for wide engine, 398x224 for fallback.
+  Z3.requestedVideo = {aspect: iphoneWide ? '19.5:9' : '16:9', preserveSprites: true,
+    width: expectedWidth, height: 224, ini: engineIni};
   mod.FS.writeFile('/zelda3_assets.dat', datBytes);
 
   // Saves live in IndexedDB via IDBFS so they survive a reload.
@@ -302,12 +320,12 @@ async function boot(datBytes) {
   // callMain unwinds almost immediately: Asyncify turns the engine's frame
   // delay into a yield back to the browser, and the game resumes from there.
   mod.callMain(['--config', '/zelda3.ini']);
-  log('engine started (requested true widescreen 16:9, unchanged_sprites)');
+  log(`engine started (${iphoneWide ? '19.5:9' : '16:9'}, unchanged_sprites)`);
   // SDL/Emscripten can reset the canvas dimensions after initialization.
   // Record observed dimensions; never claim verified widescreen from CSS alone.
   const reportCanvas = () => {
     Z3.observedVideo = {width: canvas.width, height: canvas.height};
-    Z3.widescreenDimensionsMatch = canvas.width === 398 && canvas.height === 224;
+    Z3.widescreenDimensionsMatch = canvas.width === expectedWidth && canvas.height === 224;
     log(`canvas framebuffer: ${canvas.width}x${canvas.height}; ` +
       (Z3.widescreenDimensionsMatch ? 'matches widescreen dimensions' : 'WARNING: differs from expected widescreen dimensions'));
   };
