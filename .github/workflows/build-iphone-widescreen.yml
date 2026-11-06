@@ -1,0 +1,75 @@
+name: Build iPhone-wide Zelda3 WASM engine
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/patch-iphone-widescreen.py'
+      - '.github/workflows/build-iphone-widescreen.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: iphone-wide-engine
+  cancel-in-progress: false
+
+jobs:
+  compile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout fork
+        uses: actions/checkout@v4
+      - name: Install pinned Emscripten
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: '4.0.10'
+      - name: Checkout pinned Zelda3 C engine
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p work
+          git clone --filter=blob:none https://github.com/snesrev/zelda3.git work/zelda3
+          git -C work/zelda3 checkout 45a149d8b4bb8098f53d1009f76e76e7d8b79bbf
+      - name: Apply checked source patch
+        run: python3 scripts/patch-iphone-widescreen.py
+      - name: Compile source to WebAssembly
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/build-browser.py --allow-dirty --out out/iphone
+          test -s out/iphone/zelda3.js
+          test -s out/iphone/zelda3.wasm
+      - name: Verify binary and capability manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, pathlib, shutil, struct
+          p = pathlib.Path('out/iphone/zelda3.wasm')
+          data = p.read_bytes()
+          assert data[:4] == b'\\x00asm', 'invalid WebAssembly magic'
+          assert struct.unpack('<I', data[4:8])[0] == 1, 'invalid WASM format'
+          shutil.copy2(p, 'web/zelda3.wasm')
+          shutil.copy2('out/iphone/zelda3.js', 'web/zelda3.js')
+          record = json.loads(pathlib.Path('out/iphone/build-record.json').read_text())
+          record.update(iphoneWidePpu=True, maxPpuExtra=116, iphoneWideWidth=484,
+                        iphoneWideHeight=224, configAspect='19.5:9, unchanged_sprites')
+          pathlib.Path('web/build-record.json').write_text(json.dumps(record, indent=2) + '\\n')
+          print('PASS: compiled 19.5:9 engine, WebAssembly header and capability metadata')
+          PY
+          node --check web/app.js
+          node tests/verify-mobile-widescreen.cjs
+          node tests/verify-touch-input.cjs
+      - name: Commit compiled engine to main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add web/zelda3.js web/zelda3.wasm web/build-record.json
+          git diff --cached --quiet && exit 0
+          git commit -m 'build: publish verified 19.5:9 Zelda3 WebAssembly engine'
+          git push origin HEAD:main
