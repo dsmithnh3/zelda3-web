@@ -13,7 +13,7 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 UPSTREAM = ROOT / 'work' / 'zelda3'
 OUT = ROOT / 'out' / 'web'
 
-PAGE_FILES = ['index.html', 'app.js', 'browsercheck.html', 'mobile.js', 'mobile.css', 'manifest.webmanifest']
+PAGE_FILES = ['index.html', 'app.js', 'browsercheck.html', 'mobile.js', 'mobile.css', 'immersive.js', 'immersive.css', 'manifest.webmanifest']
 EXTRACTOR_FILES = [
     'restool.py', 'util.py', 'tables.py', 'text_compression.py',
     'extract_resources.py', 'compile_resources.py',
