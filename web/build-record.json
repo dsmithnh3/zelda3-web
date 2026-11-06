@@ -4,11 +4,11 @@
   "flags": [
     "-O2",
     "-I",
-    "/home/nakas/decompfleet/games/zelda3/work/zelda3",
+    "/home/runner/work/zelda3-web/zelda3-web/work/zelda3",
     "-iquote",
-    "/home/nakas/decompfleet/games/zelda3/work/zelda3/src",
+    "/home/runner/work/zelda3-web/zelda3-web/work/zelda3/src",
     "-iquote",
-    "/home/nakas/decompfleet/games/zelda3/work/zelda3/snes",
+    "/home/runner/work/zelda3-web/zelda3-web/work/zelda3/snes",
     "-sUSE_SDL=2",
     "-DSYSTEM_VOLUME_MIXER_AVAILABLE=0",
     "-sASYNCIFY=1",
@@ -31,12 +31,17 @@
     {
       "path": "zelda3.js",
       "bytes": 202619,
-      "sha256": "a8ae94e03ecc84683dff48d089b760f259c9b1b8d2dcce59aaaa97f68c0519cc"
+      "sha256": "56f7d79c08b73155736fe29eb4d8ea6953e0eec4ad784df59840ab101da01eda"
     },
     {
       "path": "zelda3.wasm",
-      "bytes": 2225293,
-      "sha256": "2ef9a0294030655e59c820c35a5b769453b54da388f7e84f9a1ee20a9fc5bffb"
+      "bytes": 2225151,
+      "sha256": "4fa6fc2746af78e859fbe85cd680fd34468a8dd7b47f6e916bc8ee39a8cf08bd"
     }
-  ]
+  ],
+  "iphoneWidePpu": true,
+  "maxPpuExtra": 116,
+  "iphoneWideWidth": 484,
+  "iphoneWideHeight": 224,
+  "configAspect": "19.5:9, unchanged_sprites"
 }
