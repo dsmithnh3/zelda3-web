@@ -1,4 +1,5 @@
 name: Build iPhone-wide Zelda3 WASM engine
+# Rebuild pinned WebAssembly after source-patch and test updates.
 
 on:
   push:
