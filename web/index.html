@@ -31,7 +31,7 @@
   canvas {
     display: block; width: 100%; max-width: 768px; image-rendering: pixelated;
     background: #000; border: 1px solid var(--line); border-radius: 6px; margin: 0 auto;
-    aspect-ratio: 256 / 224;
+    aspect-ratio: auto;
   }
   #stage[hidden] { display: none; }
   button, input[type=file] { font: inherit; }
@@ -74,7 +74,7 @@
   </div>
 
   <div class="panel" id="stage" hidden>
-    <canvas id="canvas" width="256" height="224" tabindex="0"></canvas>
+    <canvas id="canvas" width="398" height="224" tabindex="0"></canvas>
     <div class="row" style="margin-top:12px">
       <button id="focus">Focus game</button>
       <span class="muted desktop-help">Arrows move &middot; Z = B &middot; X = A &middot; A = Y &middot; S = X &middot; Enter = Start &middot; Right Shift = Select</span>
@@ -114,7 +114,7 @@
         <label>Game image
           <select id="hud-screen">
             <option value="fit">Fit (original aspect ratio)</option>
-            <option value="fill">Stretch (edge-to-edge)</option>
+            <option value="fill">Stretch (distorts image)</option>
             <option value="crop">Cover (crop edges)</option>
           </select>
         </label>
