@@ -13,7 +13,7 @@
     overflow:hidden;width:100vw;height:100dvh;max-width:none;touch-action:none
   }
   body.game-running #stage[hidden] {display:none!important}
-  body.game-running #stage canvas {
+  body.game-running #stage canvas#canvas {
     aspect-ratio:auto!important;
     position:absolute!important;inset:0!important;display:block!important;
     width:100%!important;height:100%!important;max-width:none!important;max-height:none!important;
@@ -21,8 +21,8 @@
     object-fit:contain;object-position:center center;image-rendering:pixelated;
     background:#000;touch-action:none;
   }
-  body.game-running[data-screen="fill"] #stage canvas {object-fit:fill}
-  body.game-running[data-screen="crop"] #stage canvas {object-fit:cover}
+  body.game-running[data-screen="fill"] #stage canvas#canvas {object-fit:fill}
+  body.game-running[data-screen="crop"] #stage canvas#canvas {object-fit:cover}
   body.game-running #stage > .row, body.game-running #stage > table, body.game-running #mobile-wake {display:none!important}
   body.game-running #mobile-controls {
     position:absolute!important;inset:0!important;margin:0!important;padding:0!important;
@@ -111,3 +111,10 @@
 /* Menu-only fill strips sit between the running canvas and mobile controls. */
 #menu-edge-left,#menu-edge-right {position:absolute;pointer-events:none;z-index:2;image-rendering:pixelated;touch-action:none}
 #menu-edge-left[hidden],#menu-edge-right[hidden] {display:none!important}
+
+body.game-running #stage canvas#menu-edge-left,
+body.game-running #stage canvas#menu-edge-right {
+  inset:auto;max-width:none!important;max-height:none!important;
+  padding:0!important;border:0!important;border-radius:0!important;
+  background:transparent!important;object-fit:fill!important;
+}
