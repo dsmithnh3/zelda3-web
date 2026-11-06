@@ -29,7 +29,10 @@ assert.match(html, /<option value="fit">/);
 assert.match(css, /object-fit:contain/);
 assert.match(css, /background:rgba\(23,30,43,var\(--hud-alpha\)\)/);
 assert.match(mobile, /pointerdown/);
-assert.match(app, /Z3\.widescreenDimensionsMatch = canvas\.width === 398 && canvas\.height === 224/);
+assert.match(app, /Z3\\.widescreenDimensionsMatch = canvas\\.width === expectedWidth && canvas\\.height === 224/);
+assert.match(app, /iphoneWide = meta\\.iphoneWidePpu === true/);
+const wideIni = vm.runInNewContext(app + '\\nmakeIni(true)', engineContext);
+assert.match(wideIni, /ExtendedAspectRatio = 19\\.5:9, unchanged_sprites/);
 
 // Execute real immersive preferences setup with a minimal browser surface.
 const nodes = Object.create(null);
