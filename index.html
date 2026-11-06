@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14151a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="mobile.css">
+<link rel="stylesheet" href="immersive.css">
+<!-- connect-src 'self' is the point of vendoring Pyodide: with no third-party
+     origin reachable, the ROM you pick cannot be sent anywhere even in principle. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' 'unsafe-eval'; connect-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; worker-src 'self' blob:; form-action 'none'; base-uri 'none'">
+<title>Zelda 3</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #14151a; --panel: #1d1f27; --line: #2e3140;
+    --fg: #e7e9f0; --muted: #9aa0b4; --accent: #6ea8fe; --ok: #6ee7a8; --bad: #ff8a8a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.5 ui-sans-serif, system-ui, sans-serif;
+    display: flex; flex-direction: column; align-items: center; padding: 16px; gap: 16px; min-height: 100vh;
+  }
+  h1 { font-size: 20px; margin: 0; font-weight: 600; letter-spacing: .01em; }
+  .wrap { width: 100%; max-width: 820px; display: flex; flex-direction: column; gap: 16px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+  .muted { color: var(--muted); font-size: 13px; }
+  canvas {
+    display: block; width: 100%; max-width: 768px; image-rendering: pixelated;
+    background: #000; border: 1px solid var(--line); border-radius: 6px; margin: 0 auto;
+    aspect-ratio: auto;
+  }
+  #stage[hidden] { display: none; }
+  button, input[type=file] { font: inherit; }
+  button {
+    background: var(--accent); color: #0b1020; border: 0; border-radius: 7px;
+    padding: 9px 16px; font-weight: 600; cursor: pointer;
+  }
+  button:disabled { opacity: .5; cursor: default; }
+  #log {
+    font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap;
+    max-height: 190px; overflow: auto; color: var(--muted); margin-top: 10px;
+  }
+  .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .bar { height: 6px; background: #000; border-radius: 3px; overflow: hidden; margin-top: 10px; }
+  .bar > i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+  table { border-collapse: collapse; font-size: 13px; width: 100%; }
+  th, td { text-align: left; padding: 3px 10px 3px 0; }
+  th { color: var(--muted); font-weight: 500; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+  .ok { color: var(--ok); } .bad { color: var(--bad); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>The Legend of Zelda: A Link to the Past</h1>
+
+  <div class="panel" id="picker">
+    <div class="row">
+      <input type="file" id="rom" accept=".sfc,.smc">
+      <span class="muted" id="romhint">Pick your own <code>zelda3.sfc</code> (US, 1 MiB)</span>
+    </div>
+    <p class="muted" style="margin:12px 0 0">
+      The file is read in this tab and stays here. The page is served under a
+      Content-Security-Policy with <code>connect-src 'self'</code>, so it cannot open a
+      connection to any other origin; nothing is uploaded. Your ROM is used once, to
+      extract the game's data tables, and the result is cached in this browser.
+    </p>
+    <div class="bar"><i id="bar"></i></div>
+    <div id="log"></div>
+  </div>
+
+  <div class="panel" id="stage" hidden>
+    <canvas id="canvas" width="398" height="224" tabindex="0"></canvas>
+    <canvas id="menu-edge-left" aria-hidden="true" hidden></canvas>
+    <canvas id="menu-edge-right" aria-hidden="true" hidden></canvas>
+    <div class="row" style="margin-top:12px">
+      <button id="focus">Focus game</button>
+      <span class="muted desktop-help">Arrows move &middot; Z = B &middot; X = A &middot; A = Y &middot; S = X &middot; Enter = Start &middot; Right Shift = Select</span>
+    </div>
+    <button id="mobile-wake" type="button">Enable game controls / audio</button>
+    <div id="mobile-controls" aria-label="Touch game controller">
+      <div class="mobile-cluster dpad" aria-label="Directional pad">
+        <button class="game-button up" type="button" data-keys="up" aria-label="Up">▲</button>
+        <button class="game-button left" type="button" data-keys="left" aria-label="Left">◀</button>
+        <button class="game-button right" type="button" data-keys="right" aria-label="Right">▶</button>
+        <button class="game-button down" type="button" data-keys="down" aria-label="Down">▼</button>
+      </div>
+      <div class="mobile-cluster actions" aria-label="Action buttons">
+        <button class="game-button a" type="button" data-keys="a">A</button>
+        <button class="game-button b" type="button" data-keys="b">B</button>
+        <button class="game-button x" type="button" data-keys="x">X</button>
+        <button class="game-button y" type="button" data-keys="y">Y</button>
+      </div>
+      <div class="aux-controls">
+        <button class="game-button" type="button" data-keys="l">L</button>
+        <button class="game-button" type="button" data-keys="select">SELECT</button>
+        <button class="game-button" type="button" data-keys="start">START</button>
+        <button class="game-button" type="button" data-keys="r">R</button>
+      </div>
+    </div>
+    <table style="margin-top:12px">
+      <tr><th>save</th><td id="savestate" class="muted">no save yet</td></tr>
+      <tr><th>audio</th><td id="audiostate" class="muted"></td></tr>
+    </table>
+    <div id="game-toolbar"><button type="button" id="hud-menu" aria-label="Game settings">⚙</button></div>
+    <div id="touch-debug" role="status" aria-live="off">Touch controls ready</div>
+    <div id="turn-hint" hidden>Rotate your iPhone for landscape play</div>
+    <section id="hud-settings" hidden aria-label="Game display settings">
+      <div class="settings-panel">
+        <h2>Game display &amp; controls</h2>
+        <label>Control transparency <input id="hud-opacity" type="range" min="20" max="95" value="55"></label>
+        <label>Control size <input id="hud-size" type="range" min="70" max="125" value="100"></label>
+        <label>Game image
+          <select id="hud-screen">
+            <option value="fit">Fit (original aspect ratio)</option>
+            <option value="fill">Stretch (distorts image)</option>
+            <option value="crop">Cover (crop edges)</option>
+          </select>
+        </label>
+        <button type="button" id="hud-fullscreen">Request fullscreen / landscape</button>
+        <p class="muted">For the most immersive iPhone experience, open in Safari and use Share → Add to Home Screen. iPhone Safari does not guarantee true browser fullscreen or automatic rotation.</p>
+        <button type="button" id="hud-close">Return to game</button>
+      </div>
+    </section>
+  </div>
+</div>
+<script src="canvas-readback.js"></script>
+<script src="app.js"></script>
+<script src="mobile.js"></script>
+<script src="immersive.js"></script>
+<script src="menu-wide.js"></script>
+<script src="diagnostics.js"></script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+{
+  "name": "Zelda3 Browser Port",
+  "short_name": "Zelda3",
+  "description": "User-provided ROM browser port of the Zelda3 engine",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#14151a",
+  "theme_color": "#14151a",
+  "orientation": "landscape"
+}

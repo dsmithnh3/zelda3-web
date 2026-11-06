@@ -1,0 +1,47 @@
+{
+  "revision": "45a149d8b4bb8098f53d1009f76e76e7d8b79bbf",
+  "toolchain": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 4.0.10 (b7dc6e5747465580df5984e723b9d1f10d8e804b)",
+  "flags": [
+    "-O2",
+    "-I",
+    "/home/runner/work/zelda3-web/zelda3-web/work/zelda3",
+    "-iquote",
+    "/home/runner/work/zelda3-web/zelda3-web/work/zelda3/src",
+    "-iquote",
+    "/home/runner/work/zelda3-web/zelda3-web/work/zelda3/snes",
+    "-sUSE_SDL=2",
+    "-DSYSTEM_VOLUME_MIXER_AVAILABLE=0",
+    "-sASYNCIFY=1",
+    "-sALLOW_MEMORY_GROWTH=1",
+    "-sEXIT_RUNTIME=1",
+    "-sFORCE_FILESYSTEM=1",
+    "-sINVOKE_RUN=0",
+    "-sMODULARIZE=1",
+    "-sEXPORT_NAME=createZelda3",
+    "-sEXPORTED_RUNTIME_METHODS=FS,IDBFS,callMain,ccall,cwrap,HEAPU8",
+    "-lidbfs.js"
+  ],
+  "patchedSources": [
+    "main-browser.c",
+    "zelda_rtl-browser.c"
+  ],
+  "assetsBundled": false,
+  "romBundled": false,
+  "files": [
+    {
+      "path": "zelda3.js",
+      "bytes": 202619,
+      "sha256": "56f7d79c08b73155736fe29eb4d8ea6953e0eec4ad784df59840ab101da01eda"
+    },
+    {
+      "path": "zelda3.wasm",
+      "bytes": 2225151,
+      "sha256": "4fa6fc2746af78e859fbe85cd680fd34468a8dd7b47f6e916bc8ee39a8cf08bd"
+    }
+  ],
+  "iphoneWidePpu": true,
+  "maxPpuExtra": 116,
+  "iphoneWideWidth": 484,
+  "iphoneWideHeight": 224,
+  "configAspect": "19.5:9, unchanged_sprites"
+}

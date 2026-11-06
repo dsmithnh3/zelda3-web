@@ -1,0 +1,51 @@
+/* iPhone / touchscreen enhancements; desktop layout remains unchanged. */
+html { -webkit-text-size-adjust: 100%; }
+body { padding-bottom: max(16px, env(safe-area-inset-bottom)); }
+button, #mobile-controls { -webkit-user-select:none; user-select:none; }
+#mobile-controls { display:none; touch-action:none; }
+#mobile-wake { display:none; }
+@media (hover: none), (pointer: coarse) {
+  body { padding: max(10px, env(safe-area-inset-top)) 10px max(14px, env(safe-area-inset-bottom)); gap: 10px; }
+  .wrap { gap: 10px; max-width:900px; }
+  h1 { font-size: 16px; text-align:center; }
+  .panel { padding:10px; }
+  #stage { padding: 8px; }
+  #stage canvas { max-width: min(100%, 768px); width:auto; height:auto; max-height: min(56dvh, 500px); border:0; touch-action:none; }
+  #stage .desktop-help { display:none; }
+  #mobile-controls { display:grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 12px auto 0; width: min(100%, 650px); }
+  .mobile-cluster { position:relative; height:188px; min-width:0; }
+  .game-button { position:absolute; min-width: 50px; height:50px; border-radius: 18px; background:#303d58; color:#fff; border: 1px solid #667a9a; display:grid; place-items:center; padding:0; font-size:17px; font-weight:800; box-shadow:0 3px 0 #131927; touch-action:none; -webkit-tap-highlight-color:transparent; }
+  .game-button.pressed { background:#7cb7ff; color:#091526; transform:translateY(2px); box-shadow:none; }
+  .dpad .up {top:0; left:calc(50% - 25px);}
+  .dpad .down {top:108px; left:calc(50% - 25px);}
+  .dpad .left {top:54px; left:calc(50% - 79px);}
+  .dpad .right {top:54px; left:calc(50% + 29px);}
+  .actions .a {right:0;top:56px;background:#456eab;}
+  .actions .b {right:54px;top:108px;background:#914057;}
+  .actions .x {right:54px;top:0;background:#416f62;}
+  .actions .y {right:108px;top:56px;background:#8a6d40;}
+  .aux-controls {display:flex;justify-content:center;flex-wrap:wrap;gap:8px;padding:2px 0 8px;}
+  .aux-controls .game-button { position:static; height:35px; min-width:61px; border-radius:13px; font-size:12px; font-weight:700; }
+  #mobile-wake { display:inline-flex; margin: 6px auto; }
+  #picker input[type=file] { max-width:100%; font-size:14px; }
+}
+@media (hover: none) and (orientation:landscape) {
+  body { padding: max(4px, env(safe-area-inset-top)) max(5px, env(safe-area-inset-right)) max(4px, env(safe-area-inset-bottom)) max(5px, env(safe-area-inset-left)); }
+  #stage { display:grid; grid-template-columns: minmax(0, 1fr) 200px; gap:6px; align-items:center; }
+  #stage[hidden] { display:none; }
+  #stage canvas { width:100%; max-height: 86dvh; }
+  #mobile-controls { margin:0; display:flex; flex-direction:column; gap:0; width:200px; }
+  .mobile-cluster { height:132px; }
+  .game-button { width:42px; min-width:42px;height:42px;border-radius:13px; }
+  .dpad .up { left:calc(50% - 21px);top:0; }
+  .dpad .down {left:calc(50% - 21px);top:84px;}
+  .dpad .left {left:calc(50% - 63px);top:42px;}
+  .dpad .right {left:calc(50% + 21px);top:42px;}
+  .actions .a {right:0;top:42px;}
+  .actions .b {right:42px;top:84px;}
+  .actions .x {right:42px;top:0;}
+  .actions .y {right:84px;top:42px;}
+  .aux-controls {padding:0; gap:5px;}
+  .aux-controls .game-button {height:26px; min-width:43px; font-size:10px;}
+  #stage > .row, #stage > table { display:none; }
+}
