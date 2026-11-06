@@ -6,6 +6,8 @@ on:
     branches: [main]
     paths:
       - 'scripts/patch-iphone-widescreen.py'
+      - 'tests/verify-mobile-widescreen.cjs'
+      - 'scripts/build-browser.py'
       - '.github/workflows/build-iphone-widescreen.yml'
   workflow_dispatch:
 
