@@ -29,6 +29,8 @@ jobs:
           set -euo pipefail
           node --check web/app.js
           node --check web/mobile.js
+          node --check web/immersive.js
+          test -s web/immersive.css
           test -s web/index.html
           test -s web/mobile.css
           test -s web/manifest.webmanifest
