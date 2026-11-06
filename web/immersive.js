@@ -8,7 +8,7 @@
   const hint = document.getElementById('turn-hint');
   const opacity = document.getElementById('hud-opacity');
   const size = document.getElementById('hud-size');
-  const screen = document.getElementById('hud-screen');
+  const screenMode = document.getElementById('hud-screen');
   const fullscreen = document.getElementById('hud-fullscreen');
   const canvas = document.getElementById('canvas');
   if (!stage || !settings || !canvas) return;
@@ -28,7 +28,7 @@
     document.body.dataset.screen = preferences.screen;
     opacity.value=String(preferences.opacity);
     size.value=String(preferences.size);
-    screen.value=preferences.screen;
+    screenMode.value=preferences.screen;
     try {localStorage.setItem(key,JSON.stringify(preferences));} catch (_) {}
   }
   apply();
@@ -48,7 +48,7 @@
   close?.addEventListener('click',() => {settings.hidden=true;canvas.focus({preventScroll:true});});
   opacity?.addEventListener('input',() => {preferences.opacity=opacity.value;apply();});
   size?.addEventListener('input',() => {preferences.size=size.value;apply();});
-  screen?.addEventListener('change',() => {preferences.screen=screen.value;apply();});
+  screenMode?.addEventListener('change',() => {preferences.screen=screenMode.value;apply();});
   fullscreen?.addEventListener('click',async() => {
     // iPhone Safari generally does NOT support arbitrary-element fullscreen.
     // In a home-screen PWA, standalone display removes browser chrome.
@@ -56,8 +56,8 @@
       if (document.fullscreenElement) await document.exitFullscreen();
       else if (stage.requestFullscreen) await stage.requestFullscreen();
     } catch (_) {}
-    if (screen.orientation?.lock) {
-      try { await screen.orientation.lock('landscape'); } catch (_) {}
+    if (globalThis.screen?.orientation?.lock) {
+      try { await globalThis.screen.orientation.lock('landscape'); } catch (_) {}
     }
   });
 })();
