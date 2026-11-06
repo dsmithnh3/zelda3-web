@@ -87,6 +87,8 @@ jobs:
           touch "$RUNNER_TEMP/zelda3-wide-site/.nojekyll"
           git checkout --orphan gh-pages
           git rm -rf --ignore-unmatch . >/dev/null
+          # Remove untracked compiler checkouts and output before adding the site.
+          git clean -ffdx
           cp -a "$RUNNER_TEMP/zelda3-wide-site/." .
           git add -A
           git commit -m 'Deploy rebuilt iPhone-wide Zelda3'
