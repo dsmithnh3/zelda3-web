@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'web/**'
+      - 'tests/verify-mobile-widescreen.cjs'
       - '.github/workflows/deploy-pages.yml'
   workflow_dispatch:
 
