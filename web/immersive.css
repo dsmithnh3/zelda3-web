@@ -14,6 +14,7 @@
   }
   body.game-running #stage[hidden] {display:none!important}
   body.game-running #stage canvas {
+    aspect-ratio:auto!important;
     position:absolute!important;inset:0!important;display:block!important;
     width:100%!important;height:100%!important;max-width:none!important;max-height:none!important;
     margin:0!important;border:0!important;border-radius:0!important;
