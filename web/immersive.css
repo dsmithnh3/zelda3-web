@@ -118,3 +118,10 @@ body.game-running #stage canvas#menu-edge-right {
   padding:0!important;border:0!important;border-radius:0!important;
   background:transparent!important;object-fit:fill!important;
 }
+
+/* Opt-in read-only runtime panel, never shown without ?diagnostics=1. */
+#z3-diagnostics {position:fixed;z-index:35;top:max(8px,env(safe-area-inset-top,0px));left:max(8px,env(safe-area-inset-left,0px));width:min(270px,55vw);max-height:75dvh;overflow:auto;background:rgba(8,16,28,.87);border:1px solid #718399;border-radius:12px;color:#fff;padding:8px;font:10px/1.35 ui-monospace,monospace;pointer-events:auto}
+#z3-diagnostics[hidden] {display:none!important}
+#z3-diagnostics .diag-head {display:flex;align-items:center;justify-content:space-between;gap:4px}
+#z3-diagnostics pre {white-space:pre-wrap;overflow-wrap:anywhere;margin:6px 0;font:inherit}
+#z3-diagnostics button {font:inherit;padding:3px 7px;border-radius:6px}
