@@ -28,6 +28,16 @@ async function testBrowser(name, engine) {
   try {
     const response = await page.goto(URL, {waitUntil:'load',timeout:30000});
     check(response.status()===200, name+' HTTP site loading');
+    // Diagnostics page is opt-in and must initialize without an asset import.
+    const diagPage=await context.newPage();
+    try {
+      await diagPage.goto(URL+'?diagnostics=1',{waitUntil:'load'});
+      check(await diagPage.locator('#z3-diagnostics').count()===1,
+        name+' opt-in runtime diagnostics visible');
+      const diagnostics=await diagPage.locator('#diag-output').textContent();
+      check(diagnostics.includes('Engine:') && diagnostics.includes('Canvas:'),
+        name+' diagnostics show runtime fields without ROM data');
+    } finally { await diagPage.close(); }
     check(await page.locator('#rom').count()===1,name+' user ROM import control');
     check(await page.locator('#menu-edge-left').count()===1,name+' menu overlay installed');
     check(await page.locator('#hud-settings').count()===1,name+' settings installed');
