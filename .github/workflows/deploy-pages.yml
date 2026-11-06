@@ -30,6 +30,7 @@ jobs:
           node --check web/app.js
           node --check web/mobile.js
           node --check web/immersive.js
+          node tests/verify-mobile-widescreen.cjs
           test -s web/immersive.css
           test -s web/index.html
           test -s web/mobile.css
