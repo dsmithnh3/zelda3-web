@@ -13,7 +13,7 @@
   const canvas = document.getElementById('canvas');
   if (!stage || !settings || !canvas) return;
   const key = 'zelda3-hud-v2';
-  let preferences = {opacity:55,size:100,screen:'fit'};
+  let preferences = {opacity:55,size:100,screen:'fill'};
   try {
     const stored = JSON.parse(localStorage.getItem(key) || '{}');
     if (typeof stored === 'object' && stored) Object.assign(preferences, stored);
