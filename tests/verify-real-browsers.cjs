@@ -63,7 +63,15 @@ async function testBrowser(name, engine) {
       stage.hidden=false;
       return {stageHidden:stage.hidden};
     });
-    await page.waitForTimeout(300);
+    try {
+      await page.waitForFunction(() => {
+        const l=document.getElementById('menu-edge-left');
+        const r=document.getElementById('menu-edge-right');
+        return !l.hidden && !r.hidden && l.width>0 && r.width>0;
+      },null,{timeout:3000});
+    } catch (_) {
+      // Capture actual WebKit failure geometry below, not a generic timeout.
+    }
     const layout=await page.evaluate(()=>{
       const stage=document.getElementById('stage');
       const src=document.getElementById('canvas');
@@ -83,6 +91,7 @@ async function testBrowser(name, engine) {
     check(layout.objectFit==='contain' && layout.screenMode==='fit',
       name+' aspect preserving fit');
     check(layout.canvasWidth===484 && layout.canvasHeight===224,name+' engine frame size');
+    console.log(name+' MENU_GEOMETRY '+JSON.stringify(layout));
     check(layout.leftVisible && layout.rightVisible &&
       layout.leftWidth===114 && layout.rightWidth===114,name+' extended file-select side bands');
     const controls=await page.locator('#mobile-controls [data-keys="down"]');
