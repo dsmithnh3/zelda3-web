@@ -38,6 +38,17 @@ async function testBrowser(name, engine) {
       check(diagnostics.includes('Engine:') && diagnostics.includes('Canvas:'),
         name+' diagnostics show runtime fields without ROM data');
     } finally { await diagPage.close(); }
+    const glPage=await context.newPage();
+    try {
+      await glPage.goto(URL,{waitUntil:'load'});
+      const attributes=await glPage.evaluate(()=>{
+        const c=document.getElementById('canvas');
+        const gl=c.getContext('webgl2')||c.getContext('webgl');
+        return gl?.getContextAttributes();
+      });
+      check(attributes && attributes.preserveDrawingBuffer===true,
+        name+' WebGL keeps menu-readback framebuffer available');
+    } finally {await glPage.close();}
     check(await page.locator('#rom').count()===1,name+' user ROM import control');
     check(await page.locator('#menu-edge-left').count()===1,name+' menu overlay installed');
     check(await page.locator('#hud-settings').count()===1,name+' settings installed');
