@@ -1,0 +1,46 @@
+name: Verify real browsers (no ROM)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tests/verify-real-browsers.cjs'
+      - '.github/workflows/verify-browsers.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  browser-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install browser drivers
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium webkit
+      - name: Launch local production site
+        shell: bash
+        run: |
+          python3 -m http.server 8765 --bind 127.0.0.1 --directory web > /tmp/zelda3-server.log 2>&1 &
+          echo $! > /tmp/zelda3-server.pid
+          for i in $(seq 1 30); do
+            curl --fail --silent http://127.0.0.1:8765/index.html -o /dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/zelda3-server.log
+          exit 1
+      - name: Run iPhone-size browser smoke checks
+        run: node tests/verify-real-browsers.cjs
+      - name: Upload screenshots and check results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zelda3-browser-audit
+          path: out/browser-audit/
+          if-no-files-found: warn
