@@ -223,13 +223,14 @@ function makeIni() {
     `DisableFrameDelay = ${TURBO ? 1 : 0}`,
     // ExtendedAspectRatio belongs to [General]; the parser is section-aware and
     // warns if it turns up under [Graphics].
-    'ExtendedAspectRatio = 4:3',
+    'ExtendedAspectRatio = 16:9, unchanged_sprites',
     '',
     '[Graphics]',
     'OutputMethod = SDL',
     'NewRenderer = 1',
     'EnhancedMode7 = 1',
     'WindowScale = 1',
+    'IgnoreAspectRatio = 0',
     '',
     '[Sound]',
     // Off by default: audio in this build is untested. ?audio=1 opts in.
@@ -257,7 +258,11 @@ async function boot(datBytes) {
   });
   Z3.module = mod;
 
-  mod.FS.writeFile('/zelda3.ini', makeIni());
+  const engineIni = makeIni();
+  mod.FS.writeFile('/zelda3.ini', engineIni);
+  // Widescreen config is parsed by the compiled C engine at startup.
+  // The browser canvas must start at the corresponding 398x224 dimensions.
+  Z3.requestedVideo = {aspect: '16:9', preserveSprites: true, width: 398, height: 224, ini: engineIni};
   mod.FS.writeFile('/zelda3_assets.dat', datBytes);
 
   // Saves live in IndexedDB via IDBFS so they survive a reload.
@@ -297,7 +302,16 @@ async function boot(datBytes) {
   // callMain unwinds almost immediately: Asyncify turns the engine's frame
   // delay into a yield back to the browser, and the game resumes from there.
   mod.callMain(['--config', '/zelda3.ini']);
-  log('engine started');
+  log('engine started (requested true widescreen 16:9, unchanged_sprites)');
+  // SDL/Emscripten can reset the canvas dimensions after initialization.
+  // Record observed dimensions; never claim verified widescreen from CSS alone.
+  const reportCanvas = () => {
+    Z3.observedVideo = {width: canvas.width, height: canvas.height};
+    Z3.widescreenDimensionsMatch = canvas.width === 398 && canvas.height === 224;
+    log(`canvas framebuffer: ${canvas.width}x${canvas.height}; ` +
+      (Z3.widescreenDimensionsMatch ? 'matches widescreen dimensions' : 'WARNING: differs from expected widescreen dimensions'));
+  };
+  setTimeout(reportCanvas, 1000);
 }
 
 function updateSaveLine(exists) {
