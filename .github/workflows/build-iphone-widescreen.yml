@@ -73,4 +73,19 @@ jobs:
           git add web/zelda3.js web/zelda3.wasm web/build-record.json
           git diff --cached --quiet && exit 0
           git commit -m 'build: publish verified 19.5:9 Zelda3 WebAssembly engine'
+          git fetch origin main
+          git rebase origin/main
           git push origin HEAD:main
+      - name: Publish rebuilt engine and latest UI to gh-pages
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/zelda3-wide-site"
+          cp -a web/. "$RUNNER_TEMP/zelda3-wide-site/"
+          touch "$RUNNER_TEMP/zelda3-wide-site/.nojekyll"
+          git checkout --orphan gh-pages
+          git rm -rf --ignore-unmatch . >/dev/null
+          cp -a "$RUNNER_TEMP/zelda3-wide-site/." .
+          git add -A
+          git commit -m 'Deploy rebuilt iPhone-wide Zelda3'
+          git push --force origin HEAD:gh-pages
