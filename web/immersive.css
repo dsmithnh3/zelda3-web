@@ -29,8 +29,8 @@
     pointer-events:none!important;touch-action:none;z-index:5;
   }
   body.game-running .mobile-cluster {
-    position:absolute!important;display:block!important;width:calc(196px * var(--hud-scale))!important;
-    height:calc(196px * var(--hud-scale))!important;min-width:0!important;
+    position:absolute!important;display:block!important;width:196px!important;
+    height:196px!important;min-width:0!important;
     margin:0!important;pointer-events:none!important;
     transform:scale(var(--hud-scale));transform-origin:bottom left;
   }
