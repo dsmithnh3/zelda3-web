@@ -132,11 +132,36 @@ async function testBrowser(name, engine) {
         try{
           const m=await createZelda3({canvas,noInitialRun:true,
             print:()=>{},printErr:()=>{}});
-          return {ok:!!m.FS && !!m.IDBFS && typeof m.callMain==='function',
-            error:null};
+          const ok=!!m.FS && !!m.IDBFS && typeof m.callMain==='function';
+          if(ok){
+            m.FS.mkdir('/saves');
+            m.FS.mount(m.IDBFS,{},'/saves');
+            await new Promise((resolve,reject)=>m.FS.syncfs(true,err=>err?reject(err):resolve()));
+            m.FS.writeFile('/saves/browser-audit.bin',new Uint8Array([90,51,49,57]));
+            await new Promise((resolve,reject)=>m.FS.syncfs(false,err=>err?reject(err):resolve()));
+          }
+          return {ok,error:null};
         }catch(e){return {ok:false,error:String(e)};}
       });
       check(boot.ok,name+' actual Emscripten runtime initializes: '+boot.error);
+      const reload=await context.newPage();
+      try {
+        await reload.goto(URL,{waitUntil:'load'});
+        await reload.addScriptTag({url:'zelda3.js'});
+        const persisted=await reload.evaluate(async()=>{
+          const m=await createZelda3({canvas:document.getElementById('canvas'),
+            noInitialRun:true,print:()=>{},printErr:()=>{}});
+          m.FS.mkdir('/saves');
+          m.FS.mount(m.IDBFS,{},'/saves');
+          await new Promise((resolve,reject)=>m.FS.syncfs(true,err=>err?reject(err):resolve()));
+          const data=Array.from(m.FS.readFile('/saves/browser-audit.bin'));
+          m.FS.unlink('/saves/browser-audit.bin');
+          await new Promise((resolve,reject)=>m.FS.syncfs(false,err=>err?reject(err):resolve()));
+          return data;
+        });
+        check(JSON.stringify(persisted)==='[90,51,49,57]',
+          name+' IndexedDB filesystem persists data across reload');
+      } finally {await reload.close();}
     }finally{await loader.close();}
   }finally{await context.close();await browser.close();}
 }
