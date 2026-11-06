@@ -31,6 +31,7 @@ jobs:
           node --check web/mobile.js
           node --check web/immersive.js
           node tests/verify-mobile-widescreen.cjs
+          node tests/verify-touch-input.cjs
           test -s web/immersive.css
           test -s web/index.html
           test -s web/mobile.css
