@@ -31,7 +31,7 @@ assert.match(css, /background:rgba\(23,30,43,var\(--hud-alpha\)\)/);
 assert.match(mobile, /pointerdown/);
 assert.ok(app.includes('Z3.widescreenDimensionsMatch = canvas.width === expectedWidth && canvas.height === 224'));
 assert.ok(app.includes('iphoneWide = meta.iphoneWidePpu === true'));
-const wideIni = vm.runInNewContext(app + String.fromCharCode(10) + 'makeIni(true)', engineContext);
+const wideIni = vm.runInNewContext(app + String.fromCharCode(10) + 'makeIni(true)', {...engineContext});
 assert.ok(wideIni.includes('ExtendedAspectRatio = 19.5:9, unchanged_sprites'));
 
 // Execute real immersive preferences setup with a minimal browser surface.
